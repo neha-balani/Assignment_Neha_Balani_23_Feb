@@ -13,9 +13,8 @@ import matplotlib.pyplot as plt
 pd.options.mode.chained_assignment = None
 warnings.filterwarnings(action='ignore', message='Mean of empty slice')
 
-
-mode_imputer = joblib.load('mode_imputer.save')
-median_imputer = joblib.load('median_imputer.save')
+# mode_imputer = joblib.load('mode_imputer.save')
+# median_imputer = joblib.load('median_imputer.save')
 ohe_creator = joblib.load('ohe_creator.save')
 
 mortgage_keys = ['full_name', 'dob']
@@ -55,7 +54,10 @@ customer_prod_df = customer_prod_df.drop_duplicates(subset=mortgage_keys).copy()
 customer_prod_df.drop(columns=['age_C'], inplace=True)
 customer_prod_df.rename(columns={'age': 'age_C'}, inplace=True)
 
-customer_prod_df = customer_prod_df.drop_duplicates(subset=campaign_keys, keep=False)
+customer_prod_df = customer_prod_df[(~customer_prod_df.duplicated(subset=campaign_keys)) |
+                                    ((customer_prod_df['first_name_C'].isnull()) &
+                                     (customer_prod_df['last_name_C'].isnull()) &
+                                     (customer_prod_df['company_email_C'].isnull()))]
 
 # Feature Engineering
 
@@ -66,12 +68,12 @@ if 'created_account_C' in customer_prod_df1.columns:
 
 # outlier treatment
 customer_prod_df2 = pp.outlier_iqr(customer_prod_df1[cat_vars + cont_vars])
-
-# Missing Imputation
-
-customer_prod_df2.loc[:, cont_vars] = median_imputer.transform(customer_prod_df2.loc[:, cont_vars])
-customer_prod_df2.loc[:, cat_vars] = mode_imputer.transform(customer_prod_df2.loc[:, cat_vars].copy())
-assert customer_prod_df2.isna().sum().sum() == 0
+#
+# # Missing Imputation
+#
+# customer_prod_df2.loc[:, cont_vars] = median_imputer.transform(customer_prod_df2.loc[:, cont_vars])
+# customer_prod_df2.loc[:, cat_vars] = mode_imputer.transform(customer_prod_df2.loc[:, cat_vars].copy())
+# assert customer_prod_df2.isna().sum().sum() == 0
 
 # Dummy Creation
 

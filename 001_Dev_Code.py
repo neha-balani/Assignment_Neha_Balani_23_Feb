@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import shap
-from sklearn.impute import SimpleImputer
+# from sklearn.impute import SimpleImputer
 from sklearn.metrics import plot_confusion_matrix
 from sklearn.metrics import roc_auc_score, roc_curve, precision_score, recall_score
 from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV
@@ -59,26 +59,30 @@ customer_dev_df['title_match_flag'] = np.where(customer_dev_df['name_title'] == 
 customer_dev_df['age_diff'] = np.abs(customer_dev_df.age - customer_dev_df.age_C)
 customer_dev_df.sort_values(by=campaign_sort_keys, ascending=[True, True, True, True, False], inplace=True)
 customer_dev_df = customer_dev_df.drop_duplicates(subset=campaign_keys)
-customer_dev_df = customer_dev_df.drop_duplicates(subset=mortgage_keys, keep=False)
+customer_dev_df = customer_dev_df[(~customer_dev_df.duplicated(subset=mortgage_keys)) |
+                                  ((customer_dev_df['full_name'].isnull())
+                                   & (customer_dev_df['dob'].isnull()))]
+
+# customer_dev_df = customer_dev_df.drop_duplicates(subset=mortgage_keys, keep=False)
 customer_dev_df = customer_dev_df[customer_dev_df.created_account_C.notna()]
 
 # Feature Engineering
 customer_dev_df1 = pp.variables_creation(customer_dev_df)
 
 # Data Aggregation
-y = customer_dev_df.loc[:, 'target']
-X = pp.outlier_iqr(customer_dev_df[cat_vars + cont_vars])
+y = customer_dev_df1.loc[:, 'target']
+X = pp.outlier_iqr(customer_dev_df1[cat_vars + cont_vars])
 
 X_train0, X_test0, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42, stratify=y)
 
-# Missing Imputation
-median_imputer = SimpleImputer(strategy='median')
-X_train0.loc[:, cont_vars] = median_imputer.fit_transform(X_train0.loc[:, cont_vars])
-X_test0.loc[:, cont_vars] = median_imputer.transform(X_test0.loc[:, cont_vars])
-
-mode_imputer = SimpleImputer(strategy='most_frequent')
-X_train0.loc[:, cat_vars] = mode_imputer.fit_transform(X_train0.loc[:, cat_vars].copy())
-X_test0.loc[:, cat_vars] = mode_imputer.transform(X_test0.loc[:, cat_vars].copy())
+# Missing Imputation -No longer using and relying on XGBOOST SPARSITY MATRIX
+# median_imputer = SimpleImputer(strategy='median')
+# X_train0.loc[:, cont_vars] = median_imputer.fit_transform(X_train0.loc[:, cont_vars])
+# X_test0.loc[:, cont_vars] = median_imputer.transform(X_test0.loc[:, cont_vars])
+#
+# mode_imputer = SimpleImputer(strategy='most_frequent')
+# X_train0.loc[:, cat_vars] = mode_imputer.fit_transform(X_train0.loc[:, cat_vars].copy())
+# X_test0.loc[:, cat_vars] = mode_imputer.transform(X_test0.loc[:, cat_vars].copy())
 
 # Dummy Creation
 ohe = OneHotEncoder(handle_unknown='ignore', sparse=False)
@@ -155,11 +159,11 @@ shap.summary_plot(shap_values, X_test)  # then call  summary to plot these expla
 
 # Dump Imputers and Ohe Creator
 
-mode_imputer_file = "mode_imputer.save"
-joblib.dump(mode_imputer, mode_imputer_file)
-
-median_imputer_file = "median_imputer.save"
-joblib.dump(median_imputer, median_imputer_file)
+# mode_imputer_file = "mode_imputer.save"
+# joblib.dump(mode_imputer, mode_imputer_file)
+#
+# median_imputer_file = "median_imputer.save"
+# joblib.dump(median_imputer, median_imputer_file)
 
 ohe_file = "ohe_creator.save"
 joblib.dump(ohe, ohe_file)
